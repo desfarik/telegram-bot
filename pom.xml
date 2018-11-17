@@ -3,6 +3,8 @@
 <project>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>123</artifactId>
+    <groupId>12</groupId>
+    <version>0.0.1</version>
     <build>
         <plugins>
             <plugin>
