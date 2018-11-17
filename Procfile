@@ -1,1 +1,1 @@
-java -jar  telegram-bot.jar
+web: java -jar  telegram-bot.jar
