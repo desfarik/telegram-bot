@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<project>
+    <modelVersion>231</modelVersion>
+    <artifactId>123</artifactId>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.heroku.sdk</groupId>
+                <artifactId>heroku-maven-plugin</artifactId>
+                <version>2.0.6</version>
+            </plugin>
+        </plugins>
+    </build>
+</project>
