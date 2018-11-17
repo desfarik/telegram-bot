@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 
 <project>
-    <modelVersion>231</modelVersion>
+    <modelVersion>4.0.0</modelVersion>
     <artifactId>123</artifactId>
     <build>
         <plugins>
