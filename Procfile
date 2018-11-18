@@ -1,1 +1,1 @@
-web: java -Dserver.port=33500 -jar  telegram-bot.jar
+web: java -jar ./target/telegram-bot-0.0.1.jar
