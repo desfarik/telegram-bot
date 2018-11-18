@@ -1,4 +1,4 @@
-package com.example.demo;
+package com.example.telegrambot;
 
 public enum UserStatus {
     READY,
