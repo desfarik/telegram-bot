@@ -12,4 +12,9 @@ public class FakeRestController {
     public String getAnswer() {
         return "telegram bot for Dima";
     }
+
+    @GetMapping("/error")
+    public String getError() {
+        return "telegram bot for Dima";
+    }
 }
