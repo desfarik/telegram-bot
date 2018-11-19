@@ -1,4 +1,4 @@
-package com.example.telegrambot.model;
+package com.example.telegrambot.model.user_cities;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -11,9 +11,9 @@ public interface UserCitiesRepository extends JpaRepository<UserCities, Long> {
 
     List<UserCities> findAllByUserId(Long id);
 
-    boolean existsByUserIdAndCity(Long id, String city);
+    boolean existsByUserIdAndCityName(Long id, String city);
 
     @Transactional
-    List<UserCities> deleteByUserIdAndCity(Long id, String city);
+    List<UserCities> deleteByUserIdAndCityNameContainingIgnoreCase(Long id, String city);
 
 }

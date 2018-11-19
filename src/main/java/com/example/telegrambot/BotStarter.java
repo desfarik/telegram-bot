@@ -7,10 +7,15 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Component
 public class BotStarter extends TelegramLongPollingBot {
@@ -21,17 +26,28 @@ public class BotStarter extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
-        if (update.getMessage() == null || update.getMessage().getChatId() == null) {
-            return;
-        }
-        if (!userStatusMap.containsKey(update.getMessage().getChatId())) {
-            userStatusMap.put(update.getMessage().getChatId(), UserStatus.READY);
-        }
-        Logger.info("User message: {}", update.getMessage().getText());
         SendMessage message = new SendMessage();
-        message.setChatId(update.getMessage().getChatId());
+        message.setChatId(getChatId(update));
         message.enableHtml(true);
-        message.setText(createOutputMessage(update, userStatusMap.get(update.getMessage().getChatId())));
+        if (!userStatusMap.containsKey(getChatId(update))) {
+            userStatusMap.put(getChatId(update), UserStatus.READY);
+        }
+        Logger.info("User message: {}", update.getMessage() != null ? update.getMessage().getText() : update.getCallbackQuery().getData());
+
+        try {
+            if (update.getCallbackQuery() != null && update.getCallbackQuery().getData() != null) {
+                if (userStatusMap.get(getChatId(update)) == UserStatus.REMOVE_CITY) {
+                    userStatusMap.put(getChatId(update), UserStatus.READY);
+                    message.setText("Ваши города для проверок: " + userCitiesService.removeCity(getChatId(update), update.getCallbackQuery().getData()));
+                } else {
+                    return;
+                }
+            } else {
+                createOutputMessage(update, userStatusMap.get(getChatId(update)), message);
+            }
+        } catch (Exception e) {
+            message.setText(e.getLocalizedMessage());
+        }
         try {
             Logger.info("Send message: '{}' to {}", message.getText(), message.getChatId());
             execute(message);
@@ -40,32 +56,60 @@ public class BotStarter extends TelegramLongPollingBot {
         }
     }
 
-    private String createOutputMessage(Update update, UserStatus userStatus) {
+    private Long getChatId(Update update) {
+        return update.getMessage() != null ? update.getMessage().getChatId() : update.getCallbackQuery().getFrom().getId();
+    }
+
+    private void createOutputMessage(Update update, UserStatus userStatus, SendMessage message) throws Exception {
         if (userStatus == UserStatus.READY) {
             switch (update.getMessage().getText().split(" ")[0]) {
                 case "/start":
-                    return getStartMessage();
+                    message.setText(getStartMessage());
+                    break;
                 case "/my_cities":
-                    return "Ваши города для проверок: " + userCitiesService.getCities(update.getMessage().getChatId());
+                    message.setText("Ваши города для проверок: " + userCitiesService.getCities(update.getMessage().getChatId()));
+                    break;
                 case "/add_city":
                     userStatusMap.put(update.getMessage().getChatId(), UserStatus.ADD_CITY);
-                    return "Введите город, билеты которого хотите проверять";
+                    message.setText("Введите город, билеты которого хотите проверять");
+                    break;
                 case "/remove_city":
                     userStatusMap.put(update.getMessage().getChatId(), UserStatus.REMOVE_CITY);
-                    return "Введите город, который хотите удалить";
+                    message.setText("Выберете город, который хотите удалить");
+                    message.setReplyMarkup(createRowButtons(userCitiesService.getCitiesList(update.getMessage().getChatId())));
+                    break;
                 default:
-                    return "Я не знаю такой команды :(";
+                    message.setText("Я не знаю такой команды :(");
             }
+            return;
         }
         if (userStatus == UserStatus.ADD_CITY) {
             userStatusMap.put(update.getMessage().getChatId(), UserStatus.READY);
-            return "Ваши города для проверок: " + userCitiesService.addNewCity(update.getMessage().getChatId(), update.getMessage().getText().split(" ")[0]);
+            message.setText("Ваши города для проверок: " + userCitiesService.addNewCity(update.getMessage().getChatId(), update.getMessage().getText().split(" ")[0]));
+            return;
         }
         if (userStatus == UserStatus.REMOVE_CITY) {
             userStatusMap.put(update.getMessage().getChatId(), UserStatus.READY);
-            return "Ваши города для проверок: " + userCitiesService.removeCity(update.getMessage().getChatId(), update.getMessage().getText().split(" ")[0]);
+            message.setText("Ваши города для проверок: " + userCitiesService.removeCity(update.getMessage().getChatId(), update.getMessage().getText().split(" ")[0]));
         }
-        return "Что-то пошло не так!!!";
+    }
+
+    private InlineKeyboardMarkup createRowButtons(List<String> citiesList) {
+        InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
+
+        List<List<InlineKeyboardButton>> buttons = new ArrayList<>(
+                citiesList.stream()
+                        .map(city -> {
+                            InlineKeyboardButton button = new InlineKeyboardButton();
+                            button.setCallbackData(city);
+                            button.setText(city);
+                            return button;
+                        })
+                        .collect(Collectors.groupingBy(city -> citiesList.indexOf(city.getText()) % 2, Collectors.toList()))
+                        .values());
+
+        keyboardMarkup.setKeyboard(buttons);
+        return keyboardMarkup;
     }
 
     private String getStartMessage() {
